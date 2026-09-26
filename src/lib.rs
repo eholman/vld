@@ -232,7 +232,7 @@ pub fn nested_named<T, F>(
     name: &'static str,
     f: F,
     json_schema_fn: Option<fn() -> serde_json::Value>,
-    collect_nested_fn: Option<fn(&mut Vec<(&'static str, fn() -> serde_json::Value)>)>,
+    collect_nested_fn: Option<schema::NestedSchemaCollectFn>,
 ) -> schema::NestedSchema<T, F>
 where
     F: Fn(&serde_json::Value) -> Result<T, error::VldError>,
