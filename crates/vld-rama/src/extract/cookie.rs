@@ -1,0 +1,32 @@
+use crate::rejection::VldRejection;
+use rama::http::header;
+use rama::http::request::Parts;
+use rama::http::service::web::extract::FromPartsStateRefPair;
+use vld::schema::VldParse;
+use vld_http_common::cookies_to_json;
+
+/// Rama extractor that validates **cookie values** from the `Cookie` header.
+pub struct VldCookie<T>(pub T);
+
+impl<T, State> FromPartsStateRefPair<State> for VldCookie<T>
+where
+    T: VldParse + Send + Sync + 'static,
+    State: Send + Sync + 'static,
+{
+    type Rejection = VldRejection;
+
+    async fn from_parts_state_ref_pair(
+        parts: &Parts,
+        _state: &State,
+    ) -> Result<Self, Self::Rejection> {
+        let cookie_header = parts
+            .headers
+            .get(header::COOKIE)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("");
+
+        let value = cookies_to_json(cookie_header);
+        let parsed = T::vld_parse_value(&value).map_err(VldRejection::from_vld)?;
+        Ok(VldCookie(parsed))
+    }
+}

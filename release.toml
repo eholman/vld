@@ -34,6 +34,7 @@
 #   cargo publish -p vld-rocket
 #   cargo publish -p vld-poem
 #   cargo publish -p vld-warp
+#   cargo publish -p vld-rama
 #
 # === Subsequent releases ===
 #   cargo release patch --workspace --execute

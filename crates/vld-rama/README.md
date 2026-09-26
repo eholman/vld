@@ -1,0 +1,84 @@
+[![Crates.io](https://img.shields.io/crates/v/vld-rama?style=for-the-badge)](https://crates.io/crates/vld-rama)
+
+# vld-rama
+
+[Rama](https://ramaproxy.org/) integration for the [vld](https://crates.io/crates/vld) validation library.
+
+Provides HTTP extractors and a `Layer` that validate request data with `vld` schemas — without requiring `serde::Deserialize`.
+
+| API | Replaces | Source |
+|---|---|---|
+| `VldJson<T>` | `rama::http::service::web::extract::Json<T>` | JSON body |
+| `VldQuery<T>` | `Query<T>` | URL query |
+| `VldPath<T>` | `Path<T>` | Path params |
+| `VldForm<T>` | `Form<T>` | `application/x-www-form-urlencoded` |
+| `VldHeaders<T>` | manual headers | HTTP headers |
+| `VldCookie<T>` | manual cookies | `Cookie` header |
+| `ValidateJsonLayer<T>` | — | Middleware for Service stacks |
+
+All extractors return **422 Unprocessable Entity** with a JSON issues body on failure.
+
+## Requires
+
+- Rust **1.96+** (Rama's MSRV)
+- `rama` with the `http` feature (pulled in by this crate)
+
+## Quick example
+
+```rust,ignore
+use rama::http::service::web::WebService;
+use vld::prelude::*;
+use vld_rama::{VldJson, VldQuery};
+
+vld::schema! {
+    #[derive(Debug)]
+    pub struct CreateUser {
+        pub name: String => vld::string().min(2),
+        pub email: String => vld::string().email(),
+    }
+}
+
+vld::schema! {
+    #[derive(Debug)]
+    pub struct Search {
+        pub q: String => vld::string().min(1),
+    }
+}
+
+async fn create(VldJson(user): VldJson<CreateUser>) -> String {
+    format!("created {}", user.name)
+}
+
+async fn search(VldQuery(q): VldQuery<Search>) -> String {
+    format!("q={}", q.q)
+}
+
+let svc = WebService::default()
+    .with_post("/users", create)
+    .with_get("/search", search);
+```
+
+## Layer (proxies / gateways)
+
+When you compose a `Service` stack without extractors:
+
+```rust,ignore
+use vld_rama::{ValidateJsonLayer, validated, Validated};
+
+// .layer(ValidateJsonLayer::<CreateUser>::new())
+// then in a downstream service:
+// let user = validated::<CreateUser>(&req);
+```
+
+Validated values are stored as `Validated<T>` in Rama `Extensions`.
+
+## Extractors vs Layer
+
+- **Handlers / routers** → extractors (`VldJson`, …)
+- **Proxy / gateway middleware** → `ValidateJsonLayer`
+
+TCP / TLS / SOCKS / DNS do not need this crate — call `vld` schemas directly on your own payloads.
+
+## License
+
+MIT
