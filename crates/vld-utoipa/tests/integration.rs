@@ -486,6 +486,66 @@ fn nested_in_array_auto_registered() {
     );
 }
 
+/// Regression for https://github.com/s00d/vld/issues/5 — grandchild schemas
+/// must be auto-registered transitively (Parent → Child → Grandchild).
+#[test]
+fn transitive_nested_schemas_auto_registered() {
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct ScheduleBreakItem {
+            pub start_time: String as "startTime" => vld::string().min(1),
+            pub end_time: String as "endTime" => vld::string().min(1),
+        }
+    }
+    impl_to_schema!(ScheduleBreakItem);
+
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct ScheduleDayItem {
+            pub day_of_week: i64 as "dayOfWeek" => vld::number().int().min(1).max(7),
+            pub breaks: Option<Vec<ScheduleBreakItem>> as "breaks" =>
+                vld::array(vld::nested!(ScheduleBreakItem)).optional(),
+        }
+    }
+    impl_to_schema!(ScheduleDayItem);
+
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct EmployeeScheduleRequest {
+            pub name: String => vld::string().min(1),
+            pub days: Vec<ScheduleDayItem> => vld::array(vld::nested!(ScheduleDayItem)),
+        }
+    }
+    impl_to_schema!(EmployeeScheduleRequest);
+
+    let parent_js = EmployeeScheduleRequest::json_schema();
+    assert_eq!(
+        parent_js["properties"]["days"]["items"]["$ref"],
+        "#/components/schemas/ScheduleDayItem"
+    );
+
+    let child_js = ScheduleDayItem::json_schema();
+    assert_eq!(
+        child_js["properties"]["breaks"]["oneOf"][0]["items"]["$ref"],
+        "#/components/schemas/ScheduleBreakItem"
+    );
+
+    let mut schemas = Vec::new();
+    <EmployeeScheduleRequest as ToSchema>::schemas(&mut schemas);
+    let names: Vec<&str> = schemas.iter().map(|(n, _)| n.as_str()).collect();
+
+    assert!(
+        names.contains(&"ScheduleDayItem"),
+        "child ScheduleDayItem should be auto-registered, got: {:?}",
+        names
+    );
+    assert!(
+        names.contains(&"ScheduleBreakItem"),
+        "grandchild ScheduleBreakItem should be auto-registered transitively, got: {:?}",
+        names
+    );
+}
+
 #[test]
 fn derive_type_has_empty_nested_schemas() {
     let mut schemas = Vec::new();

@@ -327,6 +327,25 @@ macro_rules! schema {
                 }
 
                 /// Collect `(name, json_schema_fn)` pairs for all nested schemas
+                /// used by fields of this struct into `out`.
+                ///
+                /// Recurses transitively (with name dedup) so grandchild schemas
+                /// are registered for OpenAPI components.
+                #[doc(hidden)]
+                pub fn __vld_collect_nested_schemas(
+                    __vld_out: &mut ::std::vec::Vec<$crate::json_schema::NestedSchemaEntry>,
+                ) {
+                    use $crate::json_schema::CollectNestedSchemas as _;
+
+                    $(
+                        {
+                            let __vld_field_schema = $schema;
+                            __vld_field_schema.collect_nested_schemas(__vld_out);
+                        }
+                    )*
+                }
+
+                /// Collect `(name, json_schema_fn)` pairs for all nested schemas
                 /// used by fields of this struct.
                 ///
                 /// Used by `vld-utoipa`'s `impl_to_schema!` to automatically register
@@ -335,17 +354,9 @@ macro_rules! schema {
                 pub fn __vld_nested_schemas()
                     -> ::std::vec::Vec<$crate::json_schema::NestedSchemaEntry>
                 {
-                    use $crate::json_schema::CollectNestedSchemas as _;
                     let mut __vld_out: ::std::vec::Vec<$crate::json_schema::NestedSchemaEntry> =
                         ::std::vec::Vec::new();
-
-                    $(
-                        {
-                            let __vld_field_schema = $schema;
-                            __vld_field_schema.collect_nested_schemas(&mut __vld_out);
-                        }
-                    )*
-
+                    Self::__vld_collect_nested_schemas(&mut __vld_out);
                     __vld_out
                 }
             }

@@ -141,7 +141,9 @@ role (as above). Shared field rules can live in a nested `vld::schema!` type com
 ## Nested Schemas (auto-registration)
 
 When you use `vld::nested!(Type)`, the nested type is automatically registered in
-utoipa's `components/schemas`. No need to list it manually in `#[openapi(components(schemas(...)))]`.
+utoipa's `components/schemas`. Registration is **transitive**: nested schemas of
+nested schemas (any depth) are included too. No need to list them manually in
+`#[openapi(components(schemas(...)))]`.
 
 ```rust
 use vld::prelude::*;

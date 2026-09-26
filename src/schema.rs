@@ -205,6 +205,10 @@ where
     /// Returns the full JSON Schema of the nested type (for OpenAPI component registration).
     #[allow(dead_code)]
     pub(crate) json_schema_fn: Option<fn() -> serde_json::Value>,
+    /// Collects transitive nested schemas of the nested type into a shared buffer.
+    #[allow(dead_code)]
+    pub(crate) collect_nested_fn:
+        Option<fn(&mut Vec<(&'static str, fn() -> serde_json::Value)>)>,
     _phantom: PhantomData<T>,
 }
 
@@ -217,6 +221,7 @@ where
             parse_fn: f,
             name: None,
             json_schema_fn: None,
+            collect_nested_fn: None,
             _phantom: PhantomData,
         }
     }
@@ -225,11 +230,13 @@ where
         f: F,
         name: &'static str,
         json_schema_fn: Option<fn() -> serde_json::Value>,
+        collect_nested_fn: Option<fn(&mut Vec<(&'static str, fn() -> serde_json::Value)>)>,
     ) -> Self {
         Self {
             parse_fn: f,
             name: Some(name),
             json_schema_fn,
+            collect_nested_fn,
             _phantom: PhantomData,
         }
     }

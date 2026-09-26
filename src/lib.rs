@@ -106,6 +106,27 @@ macro_rules! __vld_nested_schema_fn {
     };
 }
 
+#[cfg(feature = "openapi")]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __vld_nested_collect_fn {
+    ($ty:ty) => {
+        Some(
+            <$ty>::__vld_collect_nested_schemas
+                as fn(&mut ::std::vec::Vec<$crate::json_schema::NestedSchemaEntry>),
+        )
+    };
+}
+
+#[cfg(not(feature = "openapi"))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __vld_nested_collect_fn {
+    ($ty:ty) => {
+        None
+    };
+}
+
 // Re-export regex_lite when the `regex` feature is enabled
 #[cfg(feature = "regex")]
 pub use regex_lite;
@@ -211,11 +232,12 @@ pub fn nested_named<T, F>(
     name: &'static str,
     f: F,
     json_schema_fn: Option<fn() -> serde_json::Value>,
+    collect_nested_fn: Option<fn(&mut Vec<(&'static str, fn() -> serde_json::Value)>)>,
 ) -> schema::NestedSchema<T, F>
 where
     F: Fn(&serde_json::Value) -> Result<T, error::VldError>,
 {
-    schema::NestedSchema::new_named(f, name, json_schema_fn)
+    schema::NestedSchema::new_named(f, name, json_schema_fn, collect_nested_fn)
 }
 
 /// Create a named nested schema with `$ref` generation and full JSON Schema.
@@ -234,6 +256,7 @@ macro_rules! nested {
             stringify!($ty),
             <$ty>::parse_value,
             $crate::__vld_nested_schema_fn!($ty),
+            $crate::__vld_nested_collect_fn!($ty),
         )
     };
 }

@@ -319,3 +319,48 @@ fn nested_schema_registered_in_definitions() {
     assert_eq!(addr["type"], "object");
     assert!(addr["properties"]["city"].is_object());
 }
+
+/// Regression for https://github.com/s00d/vld/issues/5 — grandchild schemas
+/// must appear in aide/schemars definitions transitively.
+#[test]
+fn transitive_nested_schema_registered_in_definitions() {
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct AideBreak {
+            pub label: String => vld::string().min(1),
+        }
+    }
+    impl_json_schema!(AideBreak);
+
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct AideDay {
+            pub breaks: Option<Vec<AideBreak>> =>
+                vld::array(vld::nested!(AideBreak)).optional(),
+        }
+    }
+    impl_json_schema!(AideDay);
+
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct AideSchedule {
+            pub days: Vec<AideDay> => vld::array(vld::nested!(AideDay)),
+        }
+    }
+    impl_json_schema!(AideSchedule);
+
+    let mut gen = schemars::SchemaGenerator::default();
+    let _schema = <AideSchedule as schemars::JsonSchema>::json_schema(&mut gen);
+    let defs = gen.definitions();
+
+    assert!(
+        defs.contains_key("AideDay"),
+        "child AideDay missing: {:?}",
+        defs.keys().collect::<Vec<_>>()
+    );
+    assert!(
+        defs.contains_key("AideBreak"),
+        "grandchild AideBreak missing: {:?}",
+        defs.keys().collect::<Vec<_>>()
+    );
+}

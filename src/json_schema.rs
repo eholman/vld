@@ -273,6 +273,32 @@ impl<S: crate::schema::VldSchema + JsonSchema> JsonSchema for crate::combinators
     }
 }
 
+impl<S: crate::schema::VldSchema + JsonSchema> JsonSchema for crate::combinators::ZMessage<S> {
+    fn json_schema(&self) -> Value {
+        self.inner_schema().json_schema()
+    }
+}
+
+impl<S: crate::schema::VldSchema + JsonSchema, F> JsonSchema
+    for crate::combinators::ZSuperRefine<S, F>
+where
+    F: Fn(&S::Output, &mut crate::error::VldError),
+{
+    fn json_schema(&self) -> Value {
+        self.inner_schema().json_schema()
+    }
+}
+
+impl<F, S: crate::schema::VldSchema + JsonSchema> JsonSchema
+    for crate::combinators::ZPreprocess<F, S>
+where
+    F: Fn(&Value) -> Value,
+{
+    fn json_schema(&self) -> Value {
+        self.inner_schema().json_schema()
+    }
+}
+
 impl<A, B> JsonSchema for crate::combinators::ZUnion2<A, B>
 where
     A: crate::schema::VldSchema + JsonSchema,
@@ -474,6 +500,34 @@ impl<S: crate::schema::VldSchema + CollectNestedSchemas> CollectNestedSchemas
     }
 }
 
+impl<S: crate::schema::VldSchema + CollectNestedSchemas> CollectNestedSchemas
+    for crate::combinators::ZMessage<S>
+{
+    fn collect_nested_schemas(&self, out: &mut Vec<NestedSchemaEntry>) {
+        self.inner_schema().collect_nested_schemas(out);
+    }
+}
+
+impl<S: crate::schema::VldSchema + CollectNestedSchemas, F> CollectNestedSchemas
+    for crate::combinators::ZSuperRefine<S, F>
+where
+    F: Fn(&S::Output, &mut crate::error::VldError),
+{
+    fn collect_nested_schemas(&self, out: &mut Vec<NestedSchemaEntry>) {
+        self.inner_schema().collect_nested_schemas(out);
+    }
+}
+
+impl<F, S: crate::schema::VldSchema + CollectNestedSchemas> CollectNestedSchemas
+    for crate::combinators::ZPreprocess<F, S>
+where
+    F: Fn(&serde_json::Value) -> serde_json::Value,
+{
+    fn collect_nested_schemas(&self, out: &mut Vec<NestedSchemaEntry>) {
+        self.inner_schema().collect_nested_schemas(out);
+    }
+}
+
 impl<A, B> CollectNestedSchemas for crate::combinators::ZUnion2<A, B>
 where
     A: crate::schema::VldSchema + CollectNestedSchemas,
@@ -516,7 +570,14 @@ where
 {
     fn collect_nested_schemas(&self, out: &mut Vec<NestedSchemaEntry>) {
         if let (Some(name), Some(f)) = (self.name, self.json_schema_fn) {
+            // Dedup by name: skip cycles and diamond references already visited.
+            if out.iter().any(|(n, _)| *n == name) {
+                return;
+            }
             out.push((name, f));
+            if let Some(collect) = self.collect_nested_fn {
+                collect(out);
+            }
         }
     }
 }

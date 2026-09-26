@@ -29,6 +29,11 @@ impl<T: VldSchema> ZMessage<T> {
             msg: msg.into(),
         }
     }
+
+    /// Access the inner schema (for nested OpenAPI component collection).
+    pub fn inner_schema(&self) -> &T {
+        &self.inner
+    }
 }
 
 impl<T: VldSchema> VldSchema for ZMessage<T> {

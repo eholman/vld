@@ -308,3 +308,121 @@ fn to_openapi_document_multi() {
     assert_eq!(doc["components"]["schemas"]["Name"]["type"], "string");
     assert_eq!(doc["components"]["schemas"]["Age"]["type"], "integer");
 }
+
+/// Regression for https://github.com/s00d/vld/issues/5 — `__vld_nested_schemas`
+/// must include grandchild types transitively.
+#[test]
+fn transitive_nested_schemas_collected() {
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct CoreBreak {
+            pub label: String => vld::string().min(1),
+        }
+    }
+
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct CoreDay {
+            pub breaks: Option<Vec<CoreBreak>> =>
+                vld::array(vld::nested!(CoreBreak)).optional(),
+        }
+    }
+
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct CoreSchedule {
+            pub days: Vec<CoreDay> => vld::array(vld::nested!(CoreDay)),
+        }
+    }
+
+    let names: Vec<&str> = CoreSchedule::__vld_nested_schemas()
+        .into_iter()
+        .map(|(n, _)| n)
+        .collect();
+
+    assert!(
+        names.contains(&"CoreDay"),
+        "child CoreDay missing: {:?}",
+        names
+    );
+    assert!(
+        names.contains(&"CoreBreak"),
+        "grandchild CoreBreak missing: {:?}",
+        names
+    );
+}
+
+/// Diamond nesting: A → B, A → C, B → D, C → D — D registered once.
+#[test]
+fn nested_schemas_dedup_diamond() {
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct Leaf {
+            pub id: String => vld::string().min(1),
+        }
+    }
+
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct Left {
+            pub leaf: Leaf => vld::nested!(Leaf),
+        }
+    }
+
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct Right {
+            pub leaf: Leaf => vld::nested!(Leaf),
+        }
+    }
+
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct Root {
+            pub left: Left => vld::nested!(Left),
+            pub right: Right => vld::nested!(Right),
+        }
+    }
+
+    let names: Vec<&str> = Root::__vld_nested_schemas()
+        .into_iter()
+        .map(|(n, _)| n)
+        .collect();
+
+    assert_eq!(
+        names.iter().filter(|n| **n == "Leaf").count(),
+        1,
+        "Leaf should be deduped once, got: {:?}",
+        names
+    );
+    assert!(names.contains(&"Left"));
+    assert!(names.contains(&"Right"));
+}
+
+/// Nested behind `.message()` must still be collected.
+#[test]
+fn nested_behind_message_still_collected() {
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct MsgAddr {
+            pub city: String => vld::string().min(1),
+        }
+    }
+
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct MsgUser {
+            pub address: MsgAddr => vld::nested!(MsgAddr).message("bad address"),
+        }
+    }
+
+    let names: Vec<&str> = MsgUser::__vld_nested_schemas()
+        .into_iter()
+        .map(|(n, _)| n)
+        .collect();
+    assert!(
+        names.contains(&"MsgAddr"),
+        "MsgAddr should be collected through .message(), got: {:?}",
+        names
+    );
+}

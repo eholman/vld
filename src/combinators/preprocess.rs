@@ -40,6 +40,11 @@ where
             schema,
         }
     }
+
+    /// Access the inner schema (for nested OpenAPI component collection).
+    pub fn inner_schema(&self) -> &S {
+        &self.schema
+    }
 }
 
 impl<F, S> VldSchema for ZPreprocess<F, S>

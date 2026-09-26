@@ -1,5 +1,6 @@
 use serde_json::json;
 use vld::json_schema::JsonSchema;
+use vld::prelude::*;
 use vld_schemars::schemars;
 use vld_schemars::*;
 
@@ -653,4 +654,49 @@ fn nested_schema_registered_in_generator_definitions() {
     assert_eq!(addr["type"], "object");
     assert!(addr["properties"]["city"].is_object());
     assert!(addr["properties"]["zip"].is_object());
+}
+
+/// Regression for https://github.com/s00d/vld/issues/5 — grandchild schemas
+/// must appear in schemars definitions transitively.
+#[test]
+fn transitive_nested_schema_registered_in_definitions() {
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct SchemarsBreak {
+            pub label: String => vld::string().min(1),
+        }
+    }
+    impl_json_schema!(SchemarsBreak);
+
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct SchemarsDay {
+            pub breaks: Option<Vec<SchemarsBreak>> =>
+                vld::array(vld::nested!(SchemarsBreak)).optional(),
+        }
+    }
+    impl_json_schema!(SchemarsDay);
+
+    vld::schema! {
+        #[derive(Debug)]
+        pub struct SchemarsSchedule {
+            pub days: Vec<SchemarsDay> => vld::array(vld::nested!(SchemarsDay)),
+        }
+    }
+    impl_json_schema!(SchemarsSchedule);
+
+    let mut gen = schemars::SchemaGenerator::default();
+    let _schema = <SchemarsSchedule as schemars::JsonSchema>::json_schema(&mut gen);
+    let defs = gen.definitions();
+
+    assert!(
+        defs.contains_key("SchemarsDay"),
+        "child SchemarsDay missing: {:?}",
+        defs.keys().collect::<Vec<_>>()
+    );
+    assert!(
+        defs.contains_key("SchemarsBreak"),
+        "grandchild SchemarsBreak missing: {:?}",
+        defs.keys().collect::<Vec<_>>()
+    );
 }

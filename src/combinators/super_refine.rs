@@ -37,6 +37,11 @@ where
     pub fn new(inner: T, check: F) -> Self {
         Self { inner, check }
     }
+
+    /// Access the inner schema (for nested OpenAPI component collection).
+    pub fn inner_schema(&self) -> &T {
+        &self.inner
+    }
 }
 
 impl<T, F> VldSchema for ZSuperRefine<T, F>
