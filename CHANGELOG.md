@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Import `VldSchema` inside `schema!` OpenAPI helpers so `.optional()` works under workspace feature unification
+
 ### Changed
 
 - Bump workspace `uuid` pin to `1.26.1` (Rama requires `>=1.24`)

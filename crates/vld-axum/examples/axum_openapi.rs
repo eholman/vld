@@ -6,7 +6,6 @@
 //! ```
 
 use utoipa::IntoParams;
-use vld_axum::prelude::VldSchema;
 use vld_axum::VldQuery;
 use vld_utoipa::impl_to_schema;
 

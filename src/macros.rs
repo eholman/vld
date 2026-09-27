@@ -292,6 +292,7 @@ macro_rules! schema {
                 /// Requires the `openapi` feature.
                 pub fn json_schema() -> $crate::serde_json::Value {
                     use $crate::json_schema::JsonSchema as _;
+                    use $crate::schema::VldSchema as _;
                     let mut __vld_properties = $crate::serde_json::Map::new();
                     let mut __vld_required: ::std::vec::Vec<::std::string::String> =
                         ::std::vec::Vec::new();
@@ -336,6 +337,7 @@ macro_rules! schema {
                     __vld_out: &mut ::std::vec::Vec<$crate::json_schema::NestedSchemaEntry>,
                 ) {
                     use $crate::json_schema::CollectNestedSchemas as _;
+                    use $crate::schema::VldSchema as _;
 
                     $(
                         {
@@ -454,6 +456,8 @@ macro_rules! impl_validate_fields {
                 ::std::vec::Vec<$crate::error::FieldResult>,
                 $crate::error::VldError,
             > {
+                use $crate::schema::VldSchema as _;
+
                 let __vld_obj = __vld_json.as_object().ok_or_else(|| {
                     $crate::error::VldError::single(
                         $crate::error::IssueCode::InvalidType {

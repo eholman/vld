@@ -4,7 +4,6 @@ use axum::Router;
 use http::{Request, StatusCode};
 use tower::ServiceExt;
 #[allow(unused_imports)]
-use vld_axum::prelude::VldSchema;
 use vld_axum::{VldCookie, VldForm, VldHeaders, VldJson, VldPath, VldQuery};
 
 // ===========================================================================
