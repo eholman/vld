@@ -6,21 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Unreleased]
+## [0.4.2] - 2026-09-27
 
-### Fixed
 
-- Import `VldSchema` inside `schema!` OpenAPI helpers so `.optional()` works under workspace feature unification
-
-### Changed
-
-- Bump workspace `uuid` pin to `1.26.1` (Rama requires `>=1.24`)
-
-## [0.4.1] - 2026-09-26
 
 ### Added
 
-- New crate `vld-rama`: Rama HTTP extractors (`VldJson`, `VldQuery`, `VldPath`, `VldForm`, `VldHeaders`, `VldCookie`) and `ValidateJsonLayer`
+
+- Add vld-rama for Rama HTTP validation
+
+
+### Fixed
+
+
+- Bring VldSchema into schema! OpenAPI helpers
+
+- Drop unused VldSchema imports after schema! fix
+
+
+## [0.4.1] - 2026-09-26
+
+
 
 ### Fixed
 
