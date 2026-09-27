@@ -1,6 +1,5 @@
 use serde_json::json;
 use vld::json_schema::JsonSchema;
-use vld::prelude::*;
 use vld_schemars::schemars;
 use vld_schemars::*;
 

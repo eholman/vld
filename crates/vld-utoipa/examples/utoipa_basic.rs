@@ -1,4 +1,3 @@
-use vld::prelude::*;
 use vld_utoipa::impl_to_schema;
 
 // Nested struct — automatically registered as OpenAPI component

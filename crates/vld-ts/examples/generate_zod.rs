@@ -5,7 +5,6 @@
 //! cargo run -p vld-ts --example generate_zod
 //! ```
 
-use vld::schema::VldSchema;
 use vld_ts::{
     impl_to_openapi, impl_to_valibot, impl_to_zod, openapi_refs, to_openapi, to_valibot, to_zod,
     ToOpenApi, ToRefs, ToValibot, ToZod,

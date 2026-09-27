@@ -1,5 +1,4 @@
 use serde_json::json;
-use vld::prelude::*;
 
 vld::schema! {
     #[derive(Debug, serde::Serialize, Default, PartialEq)]
